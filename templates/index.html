@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #f5f5dc;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .modified-paragraph {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: left;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form method="post" action="/">
+            <label for="paragraph_input">Enter Paragraph:</label><br>
+            <textarea id="paragraph_input" name="paragraph_input" rows="5" cols="40" placeholder="Enter paragraph"></textarea><br><br>
+            <label for="names_input">Enter Names:</label><br>
+            <input type="text" id="names_input" name="names_input" placeholder="Enter names separated by ;"><br><br>
+            <button type="submit">Submit</button>
+            <button id="loadFileButton" type="button">Load Text File</button>
+            <input type="file" id="hiddenFileInput" accept=".txt" style="display: none;">
+            <button id="editButton" type="button">Edit</button>
+            <button id="exportButton" type="button">Export</button>
+        </form>
+        <div class="modified-paragraph">
+            {% if modified_paragraph %}
+                <p><strong>Modified Paragraph:</strong></p>
+                <textarea id="modified_paragraph_display" rows="5" cols="40" readonly>{{ modified_paragraph }}</textarea>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loadFileButton').addEventListener('click', function () {
+            document.getElementById('hiddenFileInput').click();
+        });
+
+        document.getElementById('hiddenFileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const fileContent = event.target.result;
+                document.getElementById('paragraph_input').value = fileContent;
+            };
+            reader.readAsText(file);
+        });
+
+        document.getElementById('editButton').addEventListener('click', function () {
+            // Enable editing of the modified paragraph
+            const modifiedParagraphTextarea = document.getElementById('modified_paragraph_display');
+            modifiedParagraphTextarea.removeAttribute('readonly');
+        });
+
+        document.getElementById('exportButton').addEventListener('click', function () {
+            // Export the modified paragraph as a text file
+            const modifiedParagraphText = document.getElementById('modified_paragraph_display').value;
+            const blob = new Blob([modifiedParagraphText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            // Create a temporary <a> element to trigger the download
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'modified_paragraph.txt';
+            document.body.appendChild(a);
+            a.click();
+
+            // Clean up
+            URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        });
+    </script>
+</body>
+</html>
