@@ -1,11 +1,20 @@
 import re
-from flask import Flask, render_template, request
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
-from fuzzywuzzy import fuzz
+from nltk.tokenize import TreebankWordTokenizer
+# from fuzzywuzzy import fuzz
+from flask import Flask, render_template, request
+import PyPDF2  # Import PyPDF2 for PDF text extraction
+from werkzeug.utils import secure_filename  # Import secure_filename for secure file uploads
+import os  # Import os for file operations
+import pdfplumber
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Ensure the upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def edit_distance(s, t):
     n = len(s)
@@ -59,23 +68,45 @@ def modify1(paragraph, names):
     names2 = [name_part.lower() for name in names for name_part in name.split()]
     print(names2)
     names2.extend(prefixes)
+    print(variations)
 
-    # Split the paragraph into sentences,
-    from nltk.tokenize import sent_tokenize, word_tokenize
+
+    # # Split the paragraph into sentences,
+    # from nltk.tokenize import sent_tokenize, word_tokenize
 
     # Tokenize the paragraphs into sentences
     sentences = sent_tokenize(paragraph[0])
 
     # Tokenize each sentence into words and treat commas as separate words
-    words = [word_tokenize(sentence) for sentence in sentences]
+    tokenizer = TreebankWordTokenizer()
+    words = [tokenizer.tokenize(sentence) for sentence in sentences]
 
     print(words)
-    print(names2)
+    for j in range(len(words)):
+        for i in range(len(words[j])):
+            # print(i , words[j][i])
+            if words[j][i]=='@':
+                print(i, words[j][i-1])
+                words[j][i-1]='<NAME>'
+            # if "-" in words[j][i]:
+            #     w1=words[j][i].split("-")
+            #     words[j][i]=w1[0]
+            #     words[j].insert(i+1, "-")
+            #     words[j].insert(i+, w1[1])
+            # if words[j][i]=="(" and words[j][i+1]==")":
+            # if words[j][i]=="(" and words[j][i+1]==")":
+    #             break the list into two parts using this as sepeartor and remove the symbols
+
+
+    # print(words)
+    # print(names2)
     if "." in names2:
         names2.remove(".")
     def checkdist(word):
         # print(word)
         n=len(word)
+        if len(word) <= 1:
+            return False
         if len(word)<=2:
             return word in names2
         if word=="" or len(word)<=2:
@@ -87,10 +118,11 @@ def modify1(paragraph, names):
             if edit_distance(word, i)<=n//4:
                 return True
             x.append([i, edit_distance(word, i)])
-        print(word, ":" ,x)
+        # print(word, ":" ,x)
         return False
-    print("names2 :" ,names2)
+    # print("names2 :" ,names2)
     for i in range(len(words)):
+        print(i)
         j = 0
         while j < len(words[i]):
             if checkdist(words[i][j].lower()):
@@ -110,7 +142,7 @@ def modify1(paragraph, names):
                 if checkdist(words[i][j].lower()):
                     words[i][j] = " "
             j += 1
-    print("words:" , words)
+    # print("words:" , words)
             # else:else
             #     print(words[i][j].lower())
 
@@ -123,27 +155,52 @@ def modify1(paragraph, names):
     # Reconvert sentences to a paragraph and add "."
     sentences = [" ".join(sentence).strip() for sentence in words if any(sentence)]
     paragraph = " ".join(sentences)
-    print(words)
-    print(paragraph)
+    # print(words)
+    # print(paragraph)
+    # replace (cid:127) with \n
+    paragraph = paragraph.replace("( cid:127 )", "\n")  # Replace "cid:127" with a newline character
+    # paragraph = paragraph
     return paragraph
+
+def extract_text_from_pdf(pdf_file):
+    pdf_text = ""
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            # page_text = page_text.replace("( cid:127 )", "\n")  # Replace "cid:127" with a newline character
+
+            pdf_text += page_text + '\n'  # Add line breaks to separate pages
+    # split using ( cid:127 )
+    # print(pdf_text)
+    # pdf_text= pdf_text.split("( cid:127 )")
+    return pdf_text
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     modified_paragraph = None
+
     if request.method == 'POST':
         paragraph_input = request.form['paragraph_input']
         names_input = request.form['names_input']
-        print(paragraph_input)
+        pdf_file = request.files['pdf_file']
 
-        print(names_input)
+        if pdf_file:
+            pdf_text = extract_text_from_pdf(pdf_file)
+            paragraph_input += "\n" + pdf_text
+
         pinput = [str(paragraph_input)]
         names_input = names_input.split(';')
         modified_paragraph = modify1(pinput, names_input)
+
     return render_template('index.html', modified_paragraph=modified_paragraph)
+
 
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
+
+
+
 
 # from flask import Flask
 # app = Flask(__name__)
@@ -152,3 +209,4 @@ if __name__ == '__main__':
 #     return "Hello World"
 # if __name__ == "__main__":
 #     app.run(debug = True)
+#2751ab3d678ff0277ae80f9e8a74f218cfc70fe9a9cdc7bb1c137d7e47e33d53
