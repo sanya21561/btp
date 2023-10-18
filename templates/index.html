@@ -50,17 +50,20 @@
 </head>
 <body>
     <div class="container">
-        <form method="post" action="/">
+        <form method="post" action="/" enctype="multipart/form-data">
             <label for="paragraph_input">Enter Paragraph:</label><br>
             <textarea id="paragraph_input" name="paragraph_input" rows="5" cols="40" placeholder="Enter paragraph"></textarea><br><br>
             <label for="names_input">Enter Names:</label><br>
             <input type="text" id="names_input" name="names_input" placeholder="Enter names separated by ;"><br><br>
+            <label for="pdf_file">Upload PDF File:</label><br>
+            <input type="file" id="pdf_file" name="pdf_file" accept=".pdf"><br><br>
             <button type="submit">Submit</button>
             <button id="loadFileButton" type="button">Load Text File</button>
             <input type="file" id="hiddenFileInput" accept=".txt" style="display: none;">
             <button id="editButton" type="button">Edit</button>
             <button id="exportButton" type="button">Export</button>
         </form>
+
         <div class="modified-paragraph">
             {% if modified_paragraph %}
                 <p><strong>Modified Paragraph:</strong></p>
